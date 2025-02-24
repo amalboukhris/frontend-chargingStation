@@ -1,0 +1,1 @@
+D:\ChargingStation\vehicul_charging_station\build\app\intermediates\cxx\Debug\22f6q2ib\obj\x86_64

@@ -1,0 +1,2 @@
+D:/ChargingStation/vehicul_charging_station/android/app/.cxx/Debug/22f6q2ib/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/ChargingStation/vehicul_charging_station/android/app/.cxx/Debug/22f6q2ib/armeabi-v7a/CMakeFiles/rebuild_cache.dir
