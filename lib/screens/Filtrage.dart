@@ -1,195 +1,167 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vehicul_charging_station/screens/Models/Filtrage.models.dart';
+import 'package:vehicul_charging_station/screens/Models/charging_station.dart';
+class BorneService {
+  static const String apiUrl = "https://localhost:7221/api/Borne"; // Remplace si tu utilises un appareil physique
 
-class ReservationFilterPage extends StatefulWidget {
-  @override
-  _ReservationFilterPageState createState() => _ReservationFilterPageState();
+  Future<List<Borne>> getBornes() async {
+    final response = await http.get(Uri.parse(apiUrl));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => Borne.fromJson(item)).toList();
+    } else {
+      throw Exception('Échec de chargement des bornes');
+    }
+  }
+
+  Future<void> reserveBorne(int id) async {
+    final response = await http.post(Uri.parse("$apiUrl/reserve/$id"));
+    if (response.statusCode != 200) {
+      throw Exception('Échec de la réservation de la borne');
+    }
+  }
+
+  Future<void> releaseBorne(int id) async {
+    final response = await http.post(Uri.parse("$apiUrl/release/$id"));
+    if (response.statusCode != 200) {
+      throw Exception('Échec de la libération de la borne');
+    }
+  }
+
+  Future<List<Borne>> fetchAvailableBornes(int stationId) async {
+    final response = await http.get(Uri.parse('$apiUrl/station/$stationId/available'));
+    if (response.statusCode == 200) {
+      List<Borne> bornes = parseBornes(response.body);
+      return bornes;
+    } else {
+      throw Exception('Failed to load available bornes');
+    }
+  }
+
+  List<Borne> parseBornes(String responseBody) {
+    final parsed = jsonDecode(responseBody).cast<Map<String, dynamic>>();
+    return parsed.map<Borne>((json) => Borne.fromJson(json)).toList();
+  }
 }
 
-class _ReservationFilterPageState extends State<ReservationFilterPage> {
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
-  List<Map<String, dynamic>> vehicles = [];
-  List<Map<String, dynamic>> stations = [];
-  List<Map<String, dynamic>> bornes = [
-    {"Id": 1, "ModelName": "CCS1"},
-    {"Id": 2, "ModelName": "CCS2"},
-    {"Id": 6, "ModelName": "Wall"},
-  ];
+class BorneReservationPage extends StatefulWidget {
+  final ChargingStation station;
 
-  int? selectedVehicleId;
-  int? selectedBorneId;
-  int? selectedStationId;
+    const BorneReservationPage({Key? key, required this.station}) : super(key: key);
+
+  @override
+  State<BorneReservationPage> createState() => _BorneReservationPageState();
+}
+
+class _BorneReservationPageState extends State<BorneReservationPage> {
+  late Future<List<Borne>> bornes;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    bornes = BorneService().fetchAvailableBornes(widget.station.id);
   }
 
-  // Helper function to load data
-  Future<void> _loadData() async {
-    await Future.wait([_loadVehicles(), _loadStations()]);
-  }
-
-  Future<void> _loadVehicles() async {
-    try {
-      final response = await http.get(Uri.parse('https://localhost:7221/api/Vehicle/vehicles'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          vehicles = data.map((v) => {
-            "Id": v["Id"] ?? 0,
-            "ModelName": v["ModelName"] ?? "Modèle inconnu"
-          }).toList();
-        });
-      } else {
-        throw Exception("Erreur lors du chargement des véhicules");
-      }
-    } catch (e) {
-      print("Exception: $e");
-    }
-  }
-
-  Future<void> _loadStations() async {
-    try {
-      final response = await http.get(Uri.parse('https://localhost:7221/api/ChargingStation'));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          stations = data.map((s) => {
-            "Id": s["id"] ?? 0,
-            "Name": s["name"] ?? "Station inconnue"
-          }).toList();
-        });
-      } else {
-        throw Exception("Erreur lors du chargement des stations");
-      }
-    } catch (e) {
-      print("Exception: $e");
-    }
-  }
-
-  void _createReservation() async {
-    if (selectedVehicleId == null || selectedBorneId == null || selectedStationId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Veuillez sélectionner un véhicule, une borne et une station.")),
-      );
-      return;
-    }
-
-    final response = await http.post(
-      Uri.parse('https://localhost:7221/api/Reservation/reserve'),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode({
-        "vehicleId": selectedVehicleId,
-        "borneId": selectedBorneId,
-        "stationId": selectedStationId,
-        "date": _dateController.text.isNotEmpty ? _dateController.text : "2025-01-01",
-        "time": _timeController.text.isNotEmpty ? _timeController.text : "12:00",
-      }),
-    );
-
-    if (response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Réservation effectuée avec succès !")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur lors de la réservation.")),
-      );
-    }
+  void _refreshBornes() {
+    setState(() {
+      bornes = BorneService().fetchAvailableBornes(widget.station.id);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Réservez une station de recharge")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Sélectionnez une station :"),
-            DropdownButton<int>(
-              value: selectedStationId,
-              hint: Text('Sélectionner une station'),
-              onChanged: (int? newValue) {
-                setState(() {
-                  selectedStationId = newValue;
-                });
+      appBar: AppBar(
+        title: Text('Bornes de ${widget.station.name}'),
+        backgroundColor: Colors.green,
+      ),
+      body: FutureBuilder<List<Borne>>(
+        future: bornes,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting || isLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Erreur: ${snapshot.error}'));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('Aucune borne disponible.'));
+          }
+
+          var bornesList = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: bornesList.length,
+            itemBuilder: (context, index) {
+              var borne = bornesList[index];
+              return ListTile(
+                leading: Icon(Icons.bolt, color: Colors.orange),
+                title: Text(borne.nom),
+                subtitle: Text('Station: ${borne.chargingStationName ?? 'Inconnue'}'),
+                trailing: Text(borne.etat),
+                onTap: () => _showReservationDialog(borne),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _showReservationDialog(Borne borne) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(borne.nom),
+          content: Text('État actuel: ${borne.etat}'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                if (borne.etat == "Disponible") {
+                  setState(() => isLoading = true);
+                  try {
+                    await BorneService().reserveBorne(borne.id);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Réservation réussie.")));
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur lors de la réservation.")));
+                  }
+                  _refreshBornes();
+                  setState(() => isLoading = false);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("La borne est déjà occupée.")));
+                }
               },
-              items: stations.map((station) {
-                return DropdownMenuItem<int>(
-                  value: station['Id'],
-                  child: Text(station['Name']),
-                );
-              }).toList(),
+              child: Text('Réserver'),
             ),
-            SizedBox(height: 16),
-            Text("Sélectionnez une borne :"),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              children: bornes.map((borne) {
-                bool isSelected = selectedBorneId == borne["Id"];
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedBorneId = borne["Id"];
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue[100] : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    padding: EdgeInsets.all(8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.bolt, size: 50), // Placeholder icon for borne
-                        SizedBox(height: 8),
-                        Text(borne["ModelName"], textAlign: TextAlign.center),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16),
-            Text("Sélectionnez un véhicule :"),
-            DropdownButton<int>(
-              value: selectedVehicleId,
-              hint: Text('Sélectionner un véhicule'),
-              onChanged: (int? newValue) {
-                setState(() {
-                  selectedVehicleId = newValue;
-                });
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                if (borne.etat == "Occupée") {
+                  setState(() => isLoading = true);
+                  try {
+                    await BorneService().releaseBorne(borne.id);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Borne libérée.")));
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erreur lors de la libération.")));
+                  }
+                  _refreshBornes();
+                  setState(() => isLoading = false);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("La borne est déjà disponible.")));
+                }
               },
-              items: vehicles.map((vehicle) {
-                return DropdownMenuItem<int>(
-                  value: vehicle['Id'],
-                  child: Text(vehicle['ModelName']),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _createReservation,
-              child: Text("Réserver"),
+              child: Text('Libérer'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
