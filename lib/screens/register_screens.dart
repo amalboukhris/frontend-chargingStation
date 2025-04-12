@@ -35,7 +35,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isLoading = true);
 
-    final url = Uri.parse('https://localhost:7221/api/User/register');
+    final url = Uri.parse('https://localhost:7081/api/User/register');
 
     try {
      http.Client getHttpClient() {

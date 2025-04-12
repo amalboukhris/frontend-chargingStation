@@ -30,7 +30,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       final response = await http.get(
-        Uri.parse('https://localhost:7221/api/User/profile'),
+        Uri.parse('https://localhost:7081/api/User/profile'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       final response = await http.put(
-        Uri.parse('https://localhost:7221/api/User/profile'),
+        Uri.parse('https://localhost:7081/api/User/profile'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

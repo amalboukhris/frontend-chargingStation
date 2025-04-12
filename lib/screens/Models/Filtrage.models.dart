@@ -19,4 +19,5 @@ class Borne {
       chargingStationName: json['chargingStation']?['name'], // Si vous avez un champ ChargingStation dans votre API
     );
   }
+   bool get isAvailable => etat.toLowerCase() == "disponible";
 }

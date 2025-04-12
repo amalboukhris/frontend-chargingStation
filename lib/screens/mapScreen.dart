@@ -299,6 +299,7 @@ import 'package:vehicul_charging_station/screens/Profile.dart';
 import 'package:vehicul_charging_station/screens/Filtrage.dart';
 import 'package:location/location.dart' hide PermissionStatus;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:vehicul_charging_station/screens/reservation_history_page.dart';
 
 class Mapscreen extends StatefulWidget {
   final String userId;
@@ -369,7 +370,7 @@ class _MapscreenState extends State<Mapscreen> {
   }
 
   Future<void> fetchData() async {
-  final String apiUrl = "https://localhost:7221/api/ChargingStation";
+  final String apiUrl = "https://localhost:7081/api/ChargingStation";
   setState(() => _isFetchingStations = true);
 
   try {
@@ -393,7 +394,7 @@ class _MapscreenState extends State<Mapscreen> {
 }
 Future<void> fetchDataSarsh() async {
   String name = _nameController.text.trim();
-  String baseUrl = "https://localhost:7221/api/ChargingStation/search";
+  String baseUrl = "https://localhost:7081/api/ChargingStation/search";
   String apiUrl = name.isNotEmpty ? "$baseUrl?name=$name" : baseUrl;
 
   setState(() => _isFetchingStations = true);
@@ -451,6 +452,7 @@ Widget build(BuildContext context) {
     _stations.isNotEmpty 
       ? BorneReservationPage(station: _stations.first)
       : Center(child: Text("No stations available")),
+       ReservationHistoryPage(token: widget.token),
     ProfilePage(),
   ];
   
@@ -471,6 +473,10 @@ Widget build(BuildContext context) {
           BottomNavigationBarItem(icon: Icon(Icons.map), label: "Carte"),
           BottomNavigationBarItem(
               icon: Icon(Icons.list), label: "Réservations"),
+             BottomNavigationBarItem(
+      icon: Icon(Icons.history), 
+      label: "Historique", // Changé de "Réservations" à "Historique"
+    ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profil"),
         ],
       ),
@@ -506,7 +512,7 @@ class MapContent extends StatelessWidget {
           point: currentLocation!,
           width: 40,
           height: 40,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 40),
+          child: const Icon(Icons.my_location, color: Colors.blue, size: 20),
         ),
       ...stations.asMap().entries.map((entry) {
         int index = entry.key;
@@ -530,7 +536,7 @@ class MapContent extends StatelessWidget {
             child: Icon(
               Icons.ev_station,
               color: Colors.green,
-              size: 40,
+              size: 20,
             ),
           ),
         );

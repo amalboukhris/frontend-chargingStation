@@ -21,15 +21,16 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
- Future<void> _saveToken(String token, String userId) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('auth_token', token);
-  final savedToken = prefs.getString('auth_token');
-  if (savedToken != token) {
-    debugPrint('Token saving error');
+  Future<void> _saveToken(String token, String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    final savedToken = prefs.getString('auth_token');
+    if (savedToken != token) {
+      debugPrint('Token saving error');
+    } else {
+      debugPrint('Token saved successfully: $savedToken');
+    }
   }
-}
-
 
   // Fonction pour récupérer le token
   static Future<String?> getToken() async {
@@ -38,71 +39,54 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> loginUser(String email, String password) async {
-    final url = Uri.parse('https://localhost:7221/api/User/login');
+    final url = Uri.parse('https://localhost:7081/api/User/login');
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-    final response = await http.post(
-  url,
-  headers: {'Content-Type': 'application/json'},
-  body: json.encode({'Email': email, 'Password': password}),
-).timeout(const Duration(seconds: 10), onTimeout: () {
-  throw Exception('Request timeout. Please try again.');
-});
-
-      
-
-      setState(() {
-        _isLoading = false;
-      });
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'Email': email, 'Password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-
-        // Extraction des données de la réponse
         String token = responseData['token'] ?? '';
         String userId = responseData['userId'] ?? '';
         String userEmail = responseData['email'] ?? '';
         String message = responseData['message'] ?? 'Login successful';
 
-        // Sauvegarde du token
         if (token.isNotEmpty) {
           await _saveToken(token, userId);
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => Mapscreen(
-              userId: userId, 
-              userEmail: userEmail,
-              token: token,
-            ),
+            builder: (context) =>
+                Mapscreen(userId: userId, userEmail: userEmail, token: token),
           ),
         );
       } else {
         final responseData = json.decode(response.body);
         String errorMessage = responseData['message'] ?? 'Unknown error';
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $errorMessage')),
-        );
+            SnackBar(content: Text('Login failed: $errorMessage')));
       }
     } catch (error) {
       setState(() {
         _isLoading = false;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $error')));
     }
   }
 
