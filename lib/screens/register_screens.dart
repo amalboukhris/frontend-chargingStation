@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart' as ioClient;
@@ -38,15 +37,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final url = Uri.parse('https://localhost:7081/api/User/register');
 
     try {
-     http.Client getHttpClient() {
-  if (kIsWeb) {
-    return http.Client(); // Pas besoin de gestion SSL sur le Web
-  } else {
-    HttpClient client = HttpClient();
-    client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-    return IOClient(client);
-  }
-}
+      http.Client getHttpClient() {
+        if (kIsWeb) {
+          return http.Client(); // Pas besoin de gestion SSL sur le Web
+        } else {
+          HttpClient client = HttpClient();
+          client.badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+          return IOClient(client);
+        }
+      }
 
       // Création de l'objet utilisateur
       final user = UserModel(
@@ -96,7 +96,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
     if (pickedDate != null) {
       setState(() {
-        _dateOfBirthController.text = pickedDate.toLocal().toString().split(' ')[0];
+        _dateOfBirthController.text =
+            pickedDate.toLocal().toString().split(' ')[0];
       });
     }
   }
@@ -104,139 +105,312 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formSignUpKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Create an Account',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                
-                // First Name
-                _buildTextField(_firstNameController, 'First Name'),
-
-                // Last Name
-                _buildTextField(_lastNameController, 'Last Name'),
-
-                // Email
-                _buildTextField(_emailController, 'Email', TextInputType.emailAddress),
-
-                // Phone Number
-                _buildTextField(_phoneNumberController, 'Phone Number', TextInputType.phone),
-
-                // Password
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.teal.shade800.withOpacity(0.8),
+              Colors.teal.shade400.withOpacity(0.4),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            const Spacer(),
+            Expanded(
+              flex: 7,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(25.0, 40.0, 25.0, 20.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(40.0),
+                    topRight: Radius.circular(40.0),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter a password';
-                    if (value.length < 6) return 'Password must be at least 6 characters';
-                    if (!RegExp(r'^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$').hasMatch(value)) {
-                      return 'Password must contain an uppercase, a number, and a special character';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 15),
-
-                // Date of Birth
-                TextFormField(
-                  controller: _dateOfBirthController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Date of Birth (YYYY-MM-DD)',
-                    border: OutlineInputBorder(),
-                  ),
-                  onTap: () => _selectDate(context),
-                  validator: (value) => value == null || value.isEmpty ? 'Please enter your date of birth' : null,
-                ),
-                const SizedBox(height: 15),
-
-                // Role Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  onChanged: (String? newValue) => setState(() => _selectedRole = newValue!),
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['User', 'Admin'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 25),
-
-                // Submit Button
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_formSignUpKey.currentState!.validate()) {
-                              registerUser();
-                            }
-                          },
-                          child: const Text('Sign Up'),
-                        ),
-                      ),
-
-                // Already have an account?
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Already have an account?'),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SignInScreen()),
-                      ),
-                      child: const Text('Sign In'),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: _formSignUpKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            'Create Account',
+                            style: TextStyle(
+                              fontSize: 30.0,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.teal.shade800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 25.0),
 
-  Widget _buildTextField(TextEditingController controller, String label, [TextInputType type = TextInputType.text]) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-        validator: (value) => value == null || value.isEmpty ? 'Please enter your $label' : null,
+                        // First Name
+                        TextFormField(
+                          controller: _firstNameController,
+                          decoration: InputDecoration(
+                            labelText: 'First Name',
+                            hintText: 'Enter your first name',
+                            hintStyle: const TextStyle(color: Colors.black26),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'This field is required'
+                              : null,
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Last Name
+                        TextFormField(
+                          controller: _lastNameController,
+                          decoration: InputDecoration(
+                            labelText: 'Last Name',
+                            hintText: 'Enter your last name',
+                            hintStyle: const TextStyle(color: Colors.black26),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'This field is required'
+                              : null,
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Email
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            hintText: 'Enter your email',
+                            hintStyle: const TextStyle(color: Colors.black26),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'This field is required';
+                            }
+                            final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                            if (!emailRegex.hasMatch(value)) {
+                              return 'Enter a valid email address';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Phone Number
+                        TextFormField(
+                          controller: _phoneNumberController,
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Phone Number',
+                            hintText: 'Enter your phone number',
+                            hintStyle: const TextStyle(color: Colors.black26),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'This field is required'
+                              : null,
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Password
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: 'Enter your password',
+                            hintStyle: const TextStyle(color: Colors.black26),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'This field is required';
+                            } else if (value.length < 6) {
+                              return 'Password must be at least 6 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Date of Birth
+                        TextFormField(
+                          controller: _dateOfBirthController,
+                          readOnly: true,
+                          style: const TextStyle(fontSize: 16),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade50,
+                            labelText: 'Date of Birth',
+                            prefixIcon: Icon(
+                              Icons.calendar_today_outlined,
+                              color: Colors.grey.shade600,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onTap: () => _selectDate(context),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Please enter your date of birth'
+                              : null,
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Role Dropdown
+                        DropdownButtonFormField<String>(
+                          value: _selectedRole,
+                          decoration: InputDecoration(
+                            labelText: 'Role',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          items: ['User', 'Admin'].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedRole = newValue!;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Sign Up Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade700,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    if (_formSignUpKey.currentState!
+                                        .validate()) {
+                                      registerUser();
+                                    }
+                                  },
+                            child: _isLoading
+                                ? const CircularProgressIndicator()
+                                : const Text('Sign Up', style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),),
+                          ),
+                        ),
+                        const SizedBox(height: 25.0),
+
+                        // Already have an account?
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Already have an account?',
+                                style: TextStyle(color: Colors.black45)),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SignInScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                ' Sign In',
+                                style: TextStyle(
+                                  color: Colors.teal.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// User Model
+// User Model (keep the same)
 class UserModel {
-  String firstName, lastName, email, phoneNumber, password, dateOfBirth, role;
-  UserModel({required this.firstName, required this.lastName, required this.email, required this.phoneNumber, required this.password, required this.dateOfBirth, required this.role});
-  Map<String, dynamic> toJson() => {'FirstName': firstName, 'LastName': lastName, 'Email': email, 'PhoneNumber': phoneNumber, 'Password': password, 'DateOfBirth': dateOfBirth, 'Role': role};
+  final String firstName,
+      lastName,
+      email,
+      phoneNumber,
+      password,
+      dateOfBirth,
+      role;
+
+  UserModel({
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.phoneNumber,
+    required this.password,
+    required this.dateOfBirth,
+    required this.role,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'FirstName': firstName,
+        'LastName': lastName,
+        'Email': email,
+        'PhoneNumber': phoneNumber,
+        'Password': password,
+        'DateOfBirth': dateOfBirth,
+        'Role': role,
+      };
 }

@@ -1,312 +1,25 @@
-// import 'dart:convert';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_map/flutter_map.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:latlong2/latlong.dart';
-// import 'package:vehicul_charging_station/screens/Models/charging_station.dart';
-// import 'package:vehicul_charging_station/screens/Profile.dart';
-// import 'package:vehicul_charging_station/screens/Filtrage.dart';
-// import 'package:location/location.dart' hide PermissionStatus;
-// import 'package:permission_handler/permission_handler.dart';
-
-// class Mapscreen extends StatefulWidget {
-//   const Mapscreen({super.key, required String userId, required String userEmail, required String token});
-
-//   @override
-//   // ignore: library_private_types_in_public_api
-//   _MapscreenState createState() => _MapscreenState();
-// }
-
-// class _MapscreenState extends State<Mapscreen> {
-//   final Location _locationService = Location();
-//   final TextEditingController _nameController = TextEditingController();
-//   bool _isFetchingStations = false;
-//   LatLng? _currentLocation;
-//   List<LatLng> _chargingStations = [];
-
-//   int _currentIndex = 0; // Index pour la navbar
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _initializeLocation();
-//     fetchData(); // Chargement des stations au démarrage
-//   }
-
-//   Future<void> _initializeLocation() async {
-//     if (!await _checkAndRequestPermission()) {
-//       _showError("Permission de localisation refusée.");
-//       return;
-//     }
-
-//     // Commencez à écouter la localisation
-//     _locationService.onLocationChanged.listen((LocationData locationData) {
-//       if (locationData.latitude != null && locationData.longitude != null) {
-//         setState(() {
-//           _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
-//         });
-//       }
-//     });
-
-//     // Essayez de récupérer la localisation actuelle dès le démarrage
-//     final LocationData? locationData = await _locationService.getLocation();
-//     if (locationData != null && locationData.latitude != null && locationData.longitude != null) {
-//       setState(() {
-//         _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
-//       });
-//     } else {
-//       _showError("Impossible de récupérer la position actuelle.");
-//     }
-//   }
-
-//   Future<bool> _checkAndRequestPermission() async {
-//     bool serviceEnabled = await _locationService.serviceEnabled();
-//     if (!serviceEnabled) {
-//       serviceEnabled = await _locationService.requestService();
-//       if (!serviceEnabled) return false;
-//     }
-//     PermissionStatus permissionGranted =
-//         (await _locationService.hasPermission()) as PermissionStatus;
-//     if (permissionGranted == PermissionStatus.denied) {
-//       permissionGranted =
-//           (await _locationService.requestPermission()) as PermissionStatus;
-//       if (permissionGranted != PermissionStatus.granted) return false;
-//     }
-//     return true;
-//   }
-
-//   Future<void> fetchData() async {
-//     final String apiUrl = "https://localhost:7221/api/ChargingStation";
-
-//     setState(() {
-//       _isFetchingStations = true;
-//     });
-
-//     try {
-//       final response = await http.get(Uri.parse(apiUrl));
-
-//       if (response.statusCode == 200) {
-//         List<dynamic> data = json.decode(response.body);
-
-//         setState(() {
-//           _chargingStations = data.map((stationJson) {
-//             ChargingStation station = ChargingStation.fromJson(stationJson);
-//             return LatLng(station.latitude, station.longitude);
-//           }).toList();
-//         });
-
-//         print("Stations de recharge reçues: $_chargingStations");
-//       } else {
-//         _showError("Erreur serveur: ${response.statusCode}");
-//       }
-//     } catch (e) {
-//       _showError("Erreur de connexion: Vérifiez l'API et votre connexion.");
-//     } finally {
-//       setState(() {
-//         _isFetchingStations = false;
-//       });
-//     }
-//   }
-
-//   void _showError(String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text(message),
-//         backgroundColor: Colors.red,
-//       ),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final List<Widget> _pages = [
-//       MapContent(
-//         chargingStations: _chargingStations,
-//         currentLocation: _currentLocation,
-//         onSearch: fetchData,
-//         nameController: _nameController,
-//         isFetchingStations: _isFetchingStations,
-//       ),
-//       ReservationFilterPage(),
-//       ProfilePage(),
-//       // Page des réservations
-//       // Page du profil
-//     ];
-
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text("Carte avec Stations",
-//             style: TextStyle(fontSize: 20, color: Colors.white)),
-//         backgroundColor: Colors.green,
-//       ),
-//       body: IndexedStack(
-//         index: _currentIndex,
-//         children: _pages,
-//       ),
-//       bottomNavigationBar: BottomNavigationBar(
-//         currentIndex: _currentIndex,
-//         onTap: (index) {
-//           setState(() {
-//             _currentIndex = index;
-//           });
-//         },
-//         selectedItemColor: Colors.green,
-//         unselectedItemColor: Colors.grey,
-//         items: const [
-//           BottomNavigationBarItem(icon: Icon(Icons.map), label: "Carte"),
-//           BottomNavigationBarItem(
-//               icon: Icon(Icons.list), label: "Réservations"),
-//           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profil"),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// // Page de la carte
-// class MapContent extends StatelessWidget {
-//   final List<LatLng> chargingStations;
-//   final LatLng? currentLocation;
-//   final VoidCallback onSearch;
-//   final TextEditingController nameController;
-//   final bool isFetchingStations;
-
-//   const MapContent({
-//     Key? key,
-//     required this.chargingStations,
-//     required this.currentLocation,
-//     required this.onSearch,
-//     required this.nameController,
-//     required this.isFetchingStations,
-//   }) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         // Barre de recherche
-//         Card(
-//           margin: const EdgeInsets.all(8.0),
-//           elevation: 4.0,
-//           shape: RoundedRectangleBorder(
-//             borderRadius: BorderRadius.circular(10.0),
-//           ),
-//           child: Padding(
-//             padding: const EdgeInsets.all(8.0),
-//             child: Column(
-//               children: [
-//                 TextField(
-//                   controller: nameController,
-//                   decoration: const InputDecoration(
-//                     labelText: "Nom de la station",
-//                     border: InputBorder.none,
-//                     prefixIcon: Icon(Icons.search, color: Colors.green),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 8),
-//                 ElevatedButton(
-//                   onPressed: onSearch,
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: Colors.green,
-//                     shape: RoundedRectangleBorder(
-//                       borderRadius: BorderRadius.circular(10.0),
-//                     ),
-//                     padding: const EdgeInsets.symmetric(
-//                         horizontal: 20, vertical: 10),
-//                   ),
-//                   child: isFetchingStations
-//                       ? const CircularProgressIndicator(color: Colors.white)
-//                       : const Text("Rechercher",
-//                           style: TextStyle(color: Colors.white)),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//         Expanded(
-//           child: Column(
-//             children: [
-//               Expanded(
-//                 flex: 2,
-//                 child: FlutterMap(
-//                   options: MapOptions(
-//                     initialCenter: currentLocation ?? const LatLng(35.821430, 10.634422), // Si la localisation est disponible, utilisez-la, sinon utilisez la position par défaut.
-//                     initialZoom: 14,
-//                   ),
-//                   children: [
-//                     TileLayer(
-//                       urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-//                     ),
-//                     MarkerLayer(
-//                       markers: [
-//                         if (currentLocation != null) ...[
-//                           Marker(
-//                             point: currentLocation!,
-//                             width: 40,
-//                             height: 40,
-//                             child: Icon(
-//                               Icons.location_on,
-//                               color: Colors.blue,
-//                               size: 40,
-//                             ),
-//                           ),
-//                         ],
-//                         ...chargingStations.map((station) {
-//                           return Marker(
-//                             point: station,
-//                             width: 40,
-//                             height: 40,
-//                             child: Icon(
-//                               Icons.location_on,
-//                               color: Colors.blue,
-//                               size: 40,
-//                             ), // Assurez-vous que l'image est présente dans assets
-//                           );
-//                         }).toList(),
-//                       ],
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               Expanded(
-//                 flex: 1,
-//                 child: ListView.builder(
-//                   itemCount: chargingStations.length,
-//                   itemBuilder: (context, index) {
-//                     return ListTile(
-//                       leading: Icon(Icons.ev_station, color: Colors.green),
-//                       title: Text("Station ${index + 1}"),
-//                       subtitle: Text(
-//                           "Lat: ${chargingStations[index].latitude}, Lng: ${chargingStations[index].longitude}"),
-//                     );
-//                   },
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vehicul_charging_station/screens/Models/charging_station.dart';
-import 'package:vehicul_charging_station/screens/Profile.dart';
-import 'package:vehicul_charging_station/screens/Filtrage.dart';
 import 'package:location/location.dart' hide PermissionStatus;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vehicul_charging_station/screens/Filtrage.dart';
+import 'package:vehicul_charging_station/screens/Models/charging_station.dart';
+import 'package:vehicul_charging_station/screens/Profile.dart';
+import 'package:vehicul_charging_station/screens/Reservation.dart';
 import 'package:vehicul_charging_station/screens/reservation_history_page.dart';
 
-class Mapscreen extends StatefulWidget {
+class MainMapScreen extends StatefulWidget {
   final String userId;
   final String userEmail;
   final String token;
 
-  const Mapscreen({
+  const MainMapScreen({
     super.key,
     required this.userId,
     required this.userEmail,
@@ -314,186 +27,223 @@ class Mapscreen extends StatefulWidget {
   });
 
   @override
-  _MapscreenState createState() => _MapscreenState();
+  State<MainMapScreen> createState() => _MainMapScreenState();
 }
 
-class _MapscreenState extends State<Mapscreen> {
+class _MainMapScreenState extends State<MainMapScreen> {
   final Location _locationService = Location();
-  final TextEditingController _nameController = TextEditingController();
   final MapController _mapController = MapController();
-
-  bool _isFetchingStations = false;
+  final TextEditingController _nameController = TextEditingController();
+  List<ChargePoint>_chargePoints  = [];
   LatLng? _currentLocation;
-  List<ChargingStation> _stations = [];
-
-  int _currentIndex = 0;
-
+  bool _isLoading = false;
+int _currentIndex = 0;
+bool _isFetchingStations = false;
   @override
   void initState() {
     super.initState();
     _initializeLocation();
-    fetchData();
+    _fetchChargePoints();
   }
 
   Future<void> _initializeLocation() async {
-    if (!await _checkAndRequestPermission()) {
-      _showError("Permission de localisation refusée.");
+    if (!await _checkLocationPermission()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission required')),
+      );
       return;
     }
-
-    _locationService.onLocationChanged.listen((LocationData locationData) {
-      if (locationData.latitude != null && locationData.longitude != null) {
+    
+    _locationService.onLocationChanged.listen((locationData) {
+      if (mounted) {
         setState(() {
-          _currentLocation =
-              LatLng(locationData.latitude!, locationData.longitude!);
+          _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
         });
       }
     });
 
-    final locationData = await _locationService.getLocation();
-    if (locationData.latitude != null && locationData.longitude != null) {
+    try {
+      final locationData = await _locationService.getLocation();
       setState(() {
-        _currentLocation =
-            LatLng(locationData.latitude!, locationData.longitude!);
+        _currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
       });
-    } else {
-      _showError("Impossible de récupérer la position actuelle.");
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location error: ${e.toString()}')),
+      );
     }
   }
 
-  Future<bool> _checkAndRequestPermission() async {
-    if (await Permission.location.isDenied) {
-      final result = await Permission.location.request();
-      return result.isGranted;
+  Future<bool> _checkLocationPermission() async {
+    final status = await Permission.location.status;
+    if (status.isDenied) {
+      return (await Permission.location.request()).isGranted;
     }
-    return true;
+    return status.isGranted;
   }
 
-  Future<void> fetchData() async {
-  final String apiUrl = "https://localhost:7081/api/ChargingStation";
-  setState(() => _isFetchingStations = true);
-
+ Future<void> _fetchChargePoints() async {
+  setState(() => _isLoading = true);
   try {
-    final response = await http.get(Uri.parse(apiUrl));
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:7080/api/ChargePoints'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+    );
+    
+    print('API Response: ${response.body}'); // Add this debug line
+    
     if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+      final data = json.decode(response.body) as List;
       setState(() {
-        // Vérification si les données sont valides avant de les convertir
-        _stations = data
-            .map((e) => ChargingStation.fromJson(e)) // Assurez-vous que le modèle prend en compte les valeurs nulles
-            .toList();
+        _chargePoints = data.map((e) => ChargePoint.fromJson(e)).toList();
       });
     } else {
-      _showError("Erreur serveur: ${response.statusCode}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${response.statusCode}')),
+      );
     }
   } catch (e) {
-    _showError("Erreur de connexion: $e");
+    print('Error fetching charge points: $e'); // Add this debug line
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Network error: ${e.toString()}')),
+    );
   } finally {
-    setState(() => _isFetchingStations = false);
+    setState(() => _isLoading = false);
   }
 }
-Future<void> fetchDataSarsh() async {
+
+Future<void> fetchDataSearch() async {
   String name = _nameController.text.trim();
-  String baseUrl = "https://localhost:7081/api/ChargingStation/search";
+  String baseUrl = "http://10.0.2.2:7080/api/ChargePoints/advanced-search";
   String apiUrl = name.isNotEmpty ? "$baseUrl?name=$name" : baseUrl;
 
   setState(() => _isFetchingStations = true);
 
   try {
-    final response = await http.get(Uri.parse(apiUrl));
+    print("Fetching from: $apiUrl"); // Debug log
+    final response = await http.get(
+      Uri.parse(apiUrl),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+    );
+
+    print("Response status: ${response.statusCode}"); // Debug log
+    print("Response body: ${response.body}"); // Debug log
+
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
-      final fetchedStations = data.map((e) => ChargingStation.fromJson(e)).toList();
-
-      setState(() {
-        _stations = fetchedStations;
-      });
-
-      // ✅ Recentre la carte après avoir mis à jour _stations
-      if (_stations.isNotEmpty) {
-        final firstStation = _stations.first;
-        _mapController.move(
-          LatLng(firstStation.latitude, firstStation.longitude),
-          15.0, // niveau de zoom
-        );
-      }
+      print("Parsed data: $data"); // Debug log
+      
+      final fetchedStations = data.map((e) => ChargePoint.fromJson(e)).toList();
+      // ... rest of your code
     } else {
-      _showError("Erreur serveur: ${response.statusCode}");
+      _showError("Server error: ${response.statusCode}");
     }
-  } catch (e) {
-    _showError("Erreur de connexion: $e");
+  } catch (e, stackTrace) {
+    print("Error: $e"); // Debug log
+    print("Stack trace: $stackTrace"); // Debug log
+    _showError("Connection error: $e");
   } finally {
     setState(() => _isFetchingStations = false);
   }
 }
-
-
-
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
+
+
   @override
 Widget build(BuildContext context) {
   final List<Widget> _pages = [
-   MapContent(
-  stations: _stations,
+ MapContent(
+  stations: _chargePoints,
   currentLocation: _currentLocation,
-  onSearch: fetchDataSarsh, // <-- ici
+  onSearch: fetchDataSearch,
   nameController: _nameController,
   isFetchingStations: _isFetchingStations,
-   mapController: _mapController,
+  mapController: _mapController, token: widget.token,
+ userId: widget.userId,
+        userEmail: widget.userEmail,
 ),
 
+
     // For bottom nav, show empty state or first station
-    _stations.isNotEmpty 
-      ? BorneReservationPage(station: _stations.first)
+    _chargePoints.isNotEmpty 
+      ? ChargePointReservationPage(  chargePoint: _chargePoints.first, token: widget.token, serverUrl: 'ws://10.0.2.2:7080',)
       : Center(child: Text("No stations available")),
        ReservationHistoryPage(token: widget.token),
-    ProfilePage(),
+    ProfilePage(
+  userId: widget.userId, 
+  userEmail: widget.userEmail,
+)
   ];
   
 
 
-    return Scaffold(
-     
+ return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: "Carte"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.list), label: "Réservations"),
-             BottomNavigationBarItem(
-      icon: Icon(Icons.history), 
-      label: "Historique", // Changé de "Réservations" à "Historique"
-    ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profil"),
-        ],
-      ),
+      bottomNavigationBar: _buildModernNavBar(),
+    );
+  }
+
+  BottomNavigationBar _buildModernNavBar() {
+    return BottomNavigationBar(
+      currentIndex: _currentIndex,
+      onTap: (index) => setState(() => _currentIndex = index),
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.white,
+      selectedItemColor: Colors.green[700],
+      unselectedItemColor: Colors.grey[600],
+      selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      unselectedLabelStyle: TextStyle(fontSize: 12),
+      elevation: 8,
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          activeIcon: Icon(Icons.map),
+          label: "Carte",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today_outlined),
+          activeIcon: Icon(Icons.calendar_today),
+          label: "Réservations",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.history_outlined),
+          activeIcon: Icon(Icons.history),
+          label: "Historique",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outlined),
+          activeIcon: Icon(Icons.person),
+          label: "Profil",
+        ),
+      ],
     );
   }
 }
+
+
 
 // -------------------------
 // Widget Carte
 // -------------------------
 class MapContent extends StatelessWidget {
-  final List<ChargingStation> stations;
+  final List<ChargePoint> stations;
   final LatLng? currentLocation;
   final VoidCallback onSearch;
   final TextEditingController nameController;
   final bool isFetchingStations;
+final String token;
 
+  final String userId;
+  
+  final String userEmail;
   const MapContent({
     super.key,
     required this.stations,
@@ -502,137 +252,397 @@ class MapContent extends StatelessWidget {
     required this.nameController,
     required this.isFetchingStations,
      required MapController mapController,
+     required this.token, required this.userId, required  this.userEmail,
   });
 
   @override
   Widget build(BuildContext context) {
-    final List<Marker> markers = [
-      if (currentLocation != null)
-        Marker(
-          point: currentLocation!,
-          width: 40,
-          height: 40,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 20),
-        ),
-      ...stations.asMap().entries.map((entry) {
-        int index = entry.key;
-        ChargingStation station = entry.value;
-        LatLng location = LatLng(station.latitude, station.longitude);
-
-        return Marker(
-          point: location,
-          width: 40,
-          height: 40,
-          child: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                builder: (_) => BorneReservationPage(station: station),
-
-                ),
-              );
-            },
-            child: Icon(
-              Icons.ev_station,
-              color: Colors.green,
-              size: 20,
-            ),
-          ),
-        );
-      }).toList(),
-    ];
-
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Card(
-            elevation: 3,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
+        _buildSearchCard(context),
+        Expanded(
+          child: Stack(
+            children: [
+              FlutterMap(
+                options: MapOptions(
+                  initialCenter: currentLocation ?? const LatLng(35.821430, 10.634422),
+                  initialZoom: 14,
+                ),
                 children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: "Nom de la station",
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search, color: Colors.green),
-                    ),
+                  TileLayer(
+                    urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    subdomains: ['a', 'b', 'c'],
+                    userAgentPackageName: 'com.example.vehicul_charging_station',
                   ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: onSearch,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  MarkerLayer(
+                    markers: _buildMarkers(context),
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: 20,
+                right: 20,
+                child: FloatingActionButton(
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.my_location, color: Colors.green[700]),
+                  onPressed: () {
+                    // Recentrer la carte sur la position actuelle
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildStationsList(context),
+      ],
+    );
+  }
+
+  Card _buildSearchCard(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.all(16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                hintText: "Rechercher une station...",
+                border: InputBorder.none,
+                prefixIcon: Icon(Icons.search, color: Colors.green[700]),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.tune, color: Colors.green[700]),
+                  onPressed: () {
+                    // Ouvrir les filtres avancés
+                  },
+                ),
+              ),
+            ),
+            if (isFetchingStations)
+              LinearProgressIndicator(
+                minHeight: 2,
+                color: Colors.green[700],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+List<Marker> _buildMarkers(BuildContext context) {
+  return [
+    if (currentLocation != null)
+      Marker(
+        point: currentLocation!,
+        width: 40,
+        height: 40,
+        child: const Icon(Icons.my_location, color: Colors.blue, size: 24),
+      ),
+    ...stations.map((station) {
+      final isAvailable = station.isAvailable;
+      return Marker(
+        point: LatLng(station.latitude, station.longitude),
+        width: 50,
+        height: 50,
+        child: Tooltip(
+          message: station.isAvailable 
+              ? '${station.name} - Disponible'
+              : '${station.name} - Occupé jusqu\'à ${DateFormat('HH:mm').format(station.nextAvailableTime ?? DateTime.now())}',
+          child: GestureDetector(
+            onTap: () => _showStationDetails(context, station),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isAvailable ? Colors.green[100] : Colors.red[100],
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isAvailable ? Colors.green : Colors.red,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),)
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    Icons.ev_station,
+                    color: isAvailable ? Colors.green[700] : Colors.red[700],
+                    size: 24,
+                  ),
+                  if (!isAvailable)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${station.availableConnectors}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    child: isFetchingStations
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text("Rechercher",
-                            style: TextStyle(color: Colors.white)),
-                  ),
                 ],
               ),
             ),
           ),
         ),
-        Expanded(
-          child: FlutterMap(
-            options: MapOptions(
-              initialCenter:
-                  currentLocation ?? const LatLng(35.821430, 10.634422),
-              initialZoom: 14,
+      );
+    }),
+  ];
+}
+  Widget _buildStationsList(BuildContext context) {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-              ),
-              MarkerLayer(
-                markers: markers,
-              ),
-            ],
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Stations à proximité",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "${stations.length} résultats",
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: stations.length,
+            itemBuilder: (context, index) {
+              final station = stations[index];
+              return SizedBox(
+                width: 160, // Largeur fixe
+                child: _buildStationCard(context, station),
+              );
+            },
           ),
         ),
-      Expanded(
-  flex: 1,
-  child: ListView.builder(
-    itemCount: stations.length,
-    itemBuilder: (context, index) {
-      final s = stations[index];
-      return ListTile(
-        leading: const Icon(Icons.ev_station, color: Colors.green),
-        title: Text(s.name ?? "Station ${index + 1}"),
-        subtitle: Text("Lat: ${s.latitude}, Lng: ${s.longitude}"),
-        onTap: () {
-          // Navigation vers la page de réservation avec la station
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BorneReservationPage(station: s),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStationCard(BuildContext context, ChargePoint station) {
+  return Container(
+    width: 160,
+    margin: EdgeInsets.only(right: 12, bottom: 12),
+    child: Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Important pour éviter les débordements
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Image de la carte
+          ClipRRect(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
+              height: 80,
+              color: Colors.grey[200], // Couleur de fond si l'image ne charge pas
+              child: Image.network(
+                "https://maps.googleapis.com/maps/api/staticmap?center=${station.latitude},${station.longitude}&zoom=15&size=320x120&maptype=roadmap&markers=color:green%7C${station.latitude},${station.longitude}&key=YOUR_API_KEY",
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Icon(Icons.error_outline, color: Colors.red),
+                ),
+              ),
             ),
-          );
-        },
+          ),
+          // Contenu texte
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Important
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  station.name ?? "Station",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 12, color: Colors.grey),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        "${station.latitude.toStringAsFixed(4)}, ${station.longitude.toStringAsFixed(4)}",
+                        style: TextStyle(fontSize: 10),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                SizedBox(
+                  height: 30, // Hauteur fixe pour le bouton
+                  child: ElevatedButton(
+                    onPressed: () => _showReservationDialog(context, station),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      "Réserver",
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+  void _showStationDetails(BuildContext context, ChargePoint station) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) {
+      return Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              station.name,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.grey),
+                SizedBox(width: 8),
+                Text(
+                  '${station.latitude.toStringAsFixed(4)}, ${station.longitude.toStringAsFixed(4)}',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: station.isAvailable ? Colors.green[50] : Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: station.isAvailable ? Colors.green : Colors.red,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    station.isAvailable ? 'DISPONIBLE' : 'OCCUPÉ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: station.isAvailable ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  if (!station.isAvailable && station.nextAvailableTime != null)
+                    Text(
+                      'Prochaine disponibilité: ${DateFormat('HH:mm').format(station.nextAvailableTime!)}',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  Text(
+                    'Connecteurs disponibles: ${station.availableConnectors}',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: station.isAvailable
+                  ? () => _showReservationDialog(context, station)
+                  : null,
+              child: Text('Réserver'),
+            ),
+          ],
+        ),
       );
     },
-  ),
-),
+  );
+}
 
-      ],
+  void _showReservationDialog(BuildContext context, ChargePoint station) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReservationPage(
+          chargePointId: station.id,
+          chargePointName: station.name ?? "Station",
+          token: token,
+        ),
+      ),
     );
   }
 }
